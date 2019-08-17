@@ -228,6 +228,7 @@ def decode_BW_image(image):
                 current_line += 1
 
             current_column = new_column
+    return
 
 if __name__ == '__main__':
     image = args.image
