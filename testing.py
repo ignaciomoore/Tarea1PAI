@@ -2,6 +2,8 @@
 import skimage.io as skio
 import numpy as np
 import math
+from tarea_1 import encode_char_BW
+from tarea_1 import decode_char_BW
 '''
 image = skio.io.imread('elephant.jpg')
 
@@ -91,20 +93,171 @@ def decode_char_BWTest(nBits, image, startI, startJ):
     Character = chr(int(binCharacter,2))
     return Character
 
-b = 'h'
+copied_image = 'h'
 
+def test_encode_BW_image(nBits, image, text):
 
+    file = open(text,"r")
+    str_text = file.read()
+    new_image = image.copy()
+    pixels = math.ceil(8.0/nBits)
+
+    char_nBits = chr(nBits)
+
+    current_line = 0
+    current_column = 0
+
+    #the nBits number is represented by 2 bits in each pixel
+    #of the first 4 pixels
+    encode_char_BW(2,new_image,current_line,current_column,char_nBits)
+
+    current_column += 4
+
+    size = new_image.shape
+
+    encode_char_BW(nBits,new_image,current_line,current_column,chr(len(str_text)))
+
+    if ((current_column + pixels) % size[1]) < current_column:
+        current_line += 1
+
+    current_column = (current_column + pixels) % size[1]
+
+    for i in range(len(text)):
+
+        encode_char_BW(nBits,new_image,current_line,current_column,text[i])
+
+        new_column = (current_column + pixels) % size[1]
+
+        if new_column < current_column:
+            current_line += 1
+
+        current_column = new_column
+
+    for i in range(len(str_text)):
+
+            encode_char_BW(nBits,new_image,current_line,current_column,str_text[i])
+
+            new_column = (current_column+pixels)%size[1]
+
+            if new_column < current_column:
+                current_line += 1
+
+            current_column = new_column
+
+    return new_image
+
+def test_decode_BW_image(image):
+
+    char_nBits = decode_char_BW(2,image,0,0)
+    print(char_nBits)
+    nBits = ord(char_nBits)
+    print(nBits)
+    print(image[0][:4])
+    pixels = math.ceil(8.0 / nBits)
+    filename = ''
+    current_line = 0
+    current_column = 4
+    size = image.shape
+
+    content_size = ord(decode_char_BW(nBits,image,current_line,current_column))
+
+    if ((current_column + pixels) % size[1]) < current_column:
+        current_line += 1
+
+    current_column = (current_column + pixels) % size[1]
+
+    while filename.find('.txt') == -1:
+        filename += decode_char_BW(nBits,image,current_line,current_column)
+
+        new_column = (current_column + pixels) % size[1]
+
+        if new_column < current_column:
+            current_line += 1
+
+        current_column = new_column
+
+    index = filename.find('.')
+    filename = filename[:index]+'_out'+filename[index:]
+    file = open(filename,"w+")
+
+    for i in range(len(content_size)):
+        character = decode_char_BW(nBits,image,current_line,current_column)
+        file.write(character)
+
+        new_column = (current_column + pixels) % size[1]
+
+        if new_column < current_column:
+            current_line += 1
+
+        current_column = new_column
+
+'''
 lion_in = skio.imread('lion_gray.jpg')
 
 print('lion_in')
 print(lion_in.shape)
-'''
+
 c = decode_char_BWTest(2,lion_out,0,0)
 print(c)
 c = ord(c)
 print(c)
-'''
+
 print(lion_in[0][:4])
 print('\nlion_out')
 #print(lion_out.shape)
 #print(lion_out[0][:4])
+'''
+
+def find_name(image):
+    char_nBits = decode_char_BW(2, image, 0, 0)
+    nBits = ord(char_nBits)
+    print(nBits)
+    pixels = math.ceil(8.0 / nBits)
+
+    current_line = 0
+    current_column = 4
+    size = image.shape
+
+    content_size = ord(decode_char_BW(nBits, image, current_line, current_column))
+    print(content_size)
+
+    if ((current_column + pixels) % size[1]) < current_column:
+        current_line += 1
+
+    current_column = (current_column + pixels) % size[1]
+
+    a = (current_line, current_column)
+    print(a)
+
+    new = decode_char_BW(nBits,image,current_line,current_column)
+    print(new)
+
+    filename = ''
+    while filename.find('.txt') != -1:
+        filename += decode_char_BW(nBits,image,current_line,current_column)
+
+        new_column = (current_column + 1)%size[1]
+        if new_column<current_column:
+            current_line+=1
+        current_column = new_column
+
+        if current_line >= size[0]:
+            print('ran out of space')
+            break
+
+    print(filename)
+
+
+original_image = skio.imread('castillo_gray.jpg')
+copied_image = original_image.copy()
+
+print(copied_image[0][:5])
+
+available_pixel = encode_char_BW(5,copied_image,0,0,'R')    #W in ASCII is 87
+
+print(copied_image[0][:5])
+
+decoded_character = decode_char_BW(5,copied_image,0,0)
+
+print(decoded_character)
+

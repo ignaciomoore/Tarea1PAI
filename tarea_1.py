@@ -15,104 +15,82 @@ group.add_argument('--decode', action='store_true', help='Decode text')
 args = parser.parse_args()
 
 '''
-def to_uint8(image) :
-    if image.dtype == np.float64 :
-        image = image * 255
-    image[image<0]=0
-    image[image>255]=255
-    image = image.astype(np.uint8, copy=False)
-    return image
+int -> binary: bin(int)
+binary -> int: int(binary,2)
+char -> int: ord(char)
+int -> char: chr(int)'''
 
-def imread(filename, as_gray = False):
-    image = skio.imread(filename, as_gray = as_gray)
-    if image.dtype == np.float64:
-        image = to_uint8(image)
-    return image
-
-
-def change_BW_Bits(nBits, image, startI, startJ, char):
-
-    pixels = math.ceil(8.0/nBits)
-    size = image.shape
-    currentI = startI
-    currentJ = startJ
-
-    for j in range(pixels):
-
-        mask = ord(char)
-        mask >>= (2*j)
-        mask &= ~(-1 << nBits) #bits que se deben ingresar
-
-        if j+startJ >= size[1]:
-            currentJ = 0
-            currentI += 1
-
-        if currentI >= size[0]:
-            return print('Not enough space')
-#IM STUCK, CANT CHANGE THE BITS
-        for b in range(nBits):
-            mask
-            image[currentI][currentJ] = image[currentI][currentJ]
-'''
-
+'''Encodes char into the image, starting from de pixel image[startI][startJ].
+Also returns the location of the next available pixel'''
 def encode_char_BW(nBits, image, startI, startJ, char):
 
-    pixels = math.ceil(8.0 / nBits)
+    number_pixels = math.ceil(8.0 / nBits)
     size = image.shape
-    currentI = startI
-    currentJ = startJ
+    current_line = startI
+    current_column = startJ
 
-    binaryC = bin(ord(char))
-    binaryC = binaryC[2:]
-    binaryC = '0'*(8-len(binaryC))+binaryC
+    binary_character = bin(ord(char))
+    binary_character = binary_character[2:]
+    binary_character = '0'*(8-len(binary_character))+binary_character
 
+    for j in range(number_pixels):
 
-    for j in range(pixels):
+        if current_column >= size[1]:
+            current_line += 1
+            current_column = 0
 
-        if currentJ >= size[1]:
-            currentI += 1
-            currentJ = 0
-
-        if currentI >= size[0]:
+        if current_line >= size[0]:
             return print('Not enough space in the image')
 
-        pixel = image[currentI][currentJ]
-        binaryP = bin(pixel)
-        binaryP = binaryP[2:]
-        binaryP = '0' * (8 - len(binaryP)) + binaryP
+        pixel = image[current_line][current_column]
+        binary_pixel = bin(pixel)
+        binary_pixel = binary_pixel[2:]
+        binary_pixel = '0' * (8 - len(binary_pixel)) + binary_pixel
 
         for k in range(nBits):
-            if j+k+2 > 8:
+            if (j*nBits)+k >= 8:
                 break
 
-            binaryP = binaryP[:8-nBits+k] + binaryC[k+(j*2)] + binaryP[8-nBits+k+1:]
+            binary_pixel = binary_pixel[:8-nBits+k] + binary_character[k+(j*nBits)] + binary_pixel[8-nBits+k+1:]
 
-        image[currentI][currentJ] = int(binaryP,2)
 
-        currentJ += 1
+        image[current_line][current_column] = int(binary_pixel,2)
 
+        current_column += 1
+
+    next_pixel = (current_line,current_column)
+    return next_pixel
+
+'''Encodes de text into a copy of the image and returns it.'''
 def encode_BW_image(nBits, image, text):
-
-    file = open(text,"r")
+    file = open(text, "r")
+    str_text = file.read()
     new_image = image.copy()
-    pixels = math.ceil(8.0/nBits)
+    pixels = math.ceil(8.0 / nBits)
 
     char_nBits = chr(nBits)
 
     current_line = 0
     current_column = 0
 
-    #the nBits number is represented by 2 bits in each pixel
-    #of the first 4 pixels
-    encode_char_BW(2,new_image,current_line,current_column,char_nBits)
+    # the nBits number is represented by 2 bits in each pixel
+    # of the first 4 pixels
+    encode_char_BW(2, new_image, current_line, current_column, char_nBits)
 
     current_column += 4
 
     size = new_image.shape
 
+    encode_char_BW(nBits, new_image, current_line, current_column, chr(len(str_text)))
+
+    if ((current_column + pixels) % size[1]) < current_column:
+        current_line += 1
+
+    current_column = (current_column + pixels) % size[1]
+
     for i in range(len(text)):
 
-        encode_char_BW(nBits,new_image,current_line,current_column,text[i])
+        encode_char_BW(nBits, new_image, current_line, current_column, text[i])
 
         new_column = (current_column + pixels) % size[1]
 
@@ -121,114 +99,100 @@ def encode_BW_image(nBits, image, text):
 
         current_column = new_column
 
-    while current_line < size[0]:
-        while current_column < size[1]:
+    for i in range(len(str_text)):
 
-            char = file.read(1)
-            if char == '':
-                print('All done!')
-                return new_image
+        encode_char_BW(nBits, new_image, current_line, current_column, str_text[i])
 
-            encode_char_BW(nBits,new_image,current_line,current_column,char)
+        new_column = (current_column + pixels) % size[1]
 
-            new_column = (current_column+pixels)%size[1]
+        if new_column < current_column:
+            current_line += 1
 
-            if new_column < current_column:                current_line += 1
-
-            current_column = new_column
-
-    encode_char_BW(nBits,new_image,current_line,current_column,chr(3))
+        current_column = new_column
 
     return new_image
 
 '''
-Returns the character starting from the pixel on the position (startI,startJ) from the image '''
+Returns the next character in the image, starting from the position image[startI][startJ].'''
 def decode_char_BW(nBits, image, startI, startJ):
 
-    pixels = math.ceil(8.0 / nBits)
+    number_of_pixels = math.ceil(8.0 / nBits)
     size = image.shape
-    currentI = startI
-    currentJ = startJ
+    current_line = startI
+    current_column = startJ
 
-    binCharacter = '' #binary version of the extracted character
+    binary_character = ''   #binary version of the extracted character
 
-    for j in range(pixels):
+    for j in range(number_of_pixels):
 
-        if currentJ >= size[1]:
-            currentI += 1
-            currentJ = 0
+        if current_column >= size[1]:
+            current_line += 1
+            current_column = 0
 
-        pixel = image[currentI][currentJ]
+        if current_line >= size[0]:
+            return print('Ran out of space')
 
-        binPixel = bin(pixel) #binary version of pixel
-        binPixel = binPixel[2:]
-        binPixel = '0' * (8 - len(binPixel)) + binPixel
+        pixel = image[current_line][current_column]
+        binary_pixel = bin(pixel)   #binary version of pixel
+        binary_pixel = binary_pixel[2:]
+        binary_pixel = '0' * (8 - len(binary_pixel)) + binary_pixel
 
         for k in range(nBits):
-            if j+k+2 > 8:
+            if 8-nBits+k >= 8:
                 break
-            binCharacter += binPixel[8-nBits+k]
+            binary_character += binary_pixel[8-nBits+k]
 
-        currentJ += 1
+        current_column += 1
 
-    Character = chr(int(binCharacter,2))
-    return Character
+    binary_character = binary_character[:8]
+    character = chr(int(binary_character, 2))
+    return character
 
+'''Decodes the image and creates a text file with the encoded text'''
 def decode_BW_image(image):
-
-    char_nBits = decode_char_BW(2,image,0,0)
-    print(char_nBits)
+    char_nBits = decode_char_BW(2, image, 0, 0)
     nBits = ord(char_nBits)
-    print(nBits)
-    print(image[0][:4])
     pixels = math.ceil(8.0 / nBits)
     filename = ''
     current_line = 0
     current_column = 4
     size = image.shape
 
-    mode ='title'
+    content_size = ord(decode_char_BW(nBits, image, current_line, current_column))
 
-    while current_line < size[0]:
-        if mode != 'title':
-            break
-        while current_column < size[1]:
-            if filename.find('.txt') != -1:
-                mode = 'content'
-                break
-            else:
-                filename += decode_char_BW(nBits,image,current_line,current_column)
+    if ((current_column + pixels) % size[1]) < current_column:
+        current_line += 1
 
-            new_column = (current_column + pixels) % size[1]
+    current_column = (current_column + pixels) % size[1]
 
-            if new_column < current_column:
-                current_line += 1
+    a = (current_line, current_column)
 
-            current_column = new_column
+    while filename.find('.txt') == -1:
+        filename += decode_char_BW(nBits, image, current_line, current_column)
+
+        new_column = (current_column + pixels) % size[1]
+
+        if new_column < current_column:
+            current_line += 1
+
+        current_column = new_column
 
     index = filename.find('.')
-    filename = filename[:index]+'_out'+filename[index:]
-    file = open(filename,"w+")
+    filename = filename[:index] + '_out' + filename[index:]
+    file = open(filename, "w+")
 
-    while current_line < size[0]:
-        while current_column < size[1]:
+    for i in range(content_size):
+        character = decode_char_BW(nBits, image, current_line, current_column)
+        file.write(character)
 
-            character = decode_char_BW(nBits,image,current_line,current_column)
-            if character == chr(int('00000011',2)):
-                print('All done!')
-                file.close()
-                return
+        new_column = (current_column + pixels) % size[1]
 
-            else:
-                file.write(character)
+        if new_column < current_column:
+            current_line += 1
 
-            new_column = (current_column + pixels) % size[1]
+        current_column = new_column
 
-            if new_column < current_column:
-                current_line += 1
-
-            current_column = new_column
-    return
+def encode_char_colour(nBits, image, startI, startJ,char):
 
 if __name__ == '__main__':
     image = args.image
@@ -241,11 +205,6 @@ if __name__ == '__main__':
 
         picture = skio.imread(image)
         new_image = encode_BW_image(bits,picture,text)
-        print(picture[0][:4])
-        print(picture.shape)
-        print(new_image[0][:4])
-        print(new_image.shape)
-
 
         index = image.find('.')
         filename = image[:index]+'_out.png'
@@ -255,7 +214,6 @@ if __name__ == '__main__':
         print('Decoding')
         print(image)
         picture = skio.imread(image)
-        print(picture[0][:4])
         decode_BW_image(picture)
 
     else:
