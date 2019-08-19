@@ -4,6 +4,7 @@ import numpy as np
 import math
 from tarea_1 import encode_char_BW
 from tarea_1 import decode_char_BW
+from tarea_1 import encode_char_colour
 '''
 image = skio.io.imread('elephant.jpg')
 
@@ -248,16 +249,15 @@ def find_name(image):
     print(filename)
 
 
-original_image = skio.imread('castillo_gray.jpg')
-copied_image = original_image.copy()
+original_image = skio.imread('flower_out.png')
 
-print(copied_image[0][:5])
+print(original_image[0][:3])
 
-available_pixel = encode_char_BW(5,copied_image,0,0,'R')    #W in ASCII is 87
+#encode_char_colour(2,copied_image,0,0,'R')
 
-print(copied_image[0][:5])
 
-decoded_character = decode_char_BW(5,copied_image,0,0)
 
-print(decoded_character)
-
+'''
+if copied_image.shape[0][0][0]:
+    print('coloured')
+'''
