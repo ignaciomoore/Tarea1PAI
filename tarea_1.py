@@ -1,8 +1,6 @@
 
 import argparse
 import skimage.io as skio
-import numpy as np
-import matplotlib.pyplot as plt
 import math
 
 parser = argparse.ArgumentParser(description='Encode or Decode an Image')
@@ -341,6 +339,7 @@ def decode_char_colour(nBits, image, startI, startJ, startW):
     character = chr(int(binary_character, 2))
     return character
 
+'''Decodes the image and creates a text file with the encoded text'''
 def decode_coloured_image(image):
 
     '''Decoding the value of nBits'''
@@ -429,10 +428,3 @@ if __name__ == '__main__':
 
     else:
         print('Somethings wrong')
-
-'''
-    plt.imshow(picture, cmap='gray')
-    plt.title(image)
-    plt.axis('off')
-    plt.show()
-'''

@@ -249,9 +249,11 @@ def find_name(image):
     print(filename)
 
 
-original_image = skio.imread('flower_out.png')
+original_image = skio.imread('castillo_gray.jpg')
+new_image = skio.imread('lion_gray_out.png')
 
-print(original_image[0][:3])
+print(original_image.shape)
+#print(new_image.shape)
 
 #encode_char_colour(2,copied_image,0,0,'R')
 
